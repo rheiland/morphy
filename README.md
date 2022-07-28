@@ -4,6 +4,7 @@
 make -j2
 morph
 cd output
+python cells_info.py 0
 python anim_morph.py
 ```
 
