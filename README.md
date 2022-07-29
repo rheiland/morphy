@@ -1,5 +1,16 @@
 # morphy (for ws2022)- you know who you are
 
+
+Latest:
+```
+make -j2
+mv morph PhysiCell-model-builder-2.7.3   # want to have the executable in the GUI
+cd PhysiCell-model-builder-2.7.3
+python bin/pmb.py --studio    # or just try to run "studio.sh"
+
+```
+
+Old/originally:
 ```
 make -j2
 morph
@@ -7,6 +18,7 @@ cd output
 python cells_info.py 0
 python anim_morph.py
 ```
+then in the PMB, select the Run tab, press Run Simulation. In Plot tab, Play.
 
 Some edits I've made:
 * fixed a bug in modules/PhysiCell_MultiCellDS.cpp
