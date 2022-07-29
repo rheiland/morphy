@@ -34,3 +34,4 @@ Overnight:
 * started using the PMB; added ellipse plotting to it
 * the PMB's /data/morphy.xml is the latest config file
 * added Didi's tweaks to setup_tissue() and new user_params to the .xml
+* in vis_tab.py, ellipse's angle is a function of the cell's motility vector
