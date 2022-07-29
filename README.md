@@ -7,8 +7,8 @@ make -j2
 mv morph PhysiCell-model-builder-2.7.3   # want to have the executable in the GUI
 cd PhysiCell-model-builder-2.7.3
 python bin/pmb.py --studio    # or just try to run "studio.sh"
-
 ```
+then in the PMB, select the Run tab, press Run Simulation. In Plot tab, Play.
 
 Old/originally:
 ```
@@ -18,7 +18,7 @@ cd output
 python cells_info.py 0
 python anim_morph.py
 ```
-then in the PMB, select the Run tab, press Run Simulation. In Plot tab, Play.
+
 
 Some edits I've made:
 * fixed a bug in modules/PhysiCell_MultiCellDS.cpp
@@ -29,3 +29,8 @@ Some edits I've made:
 * hacked `phenotype_function` in custom.cpp to do something silly, but at least provide dynamics, with the `axis_*` custom vars
 * continue to make tweaks to anim_morph.py
 * more to come...
+
+Overnight:
+* started using the PMB; added ellipse plotting to it
+* the PMB's /data/morphy.xml is the latest config file
+* added Didi's tweaks to setup_tissue() and new user_params to the .xml
