@@ -218,6 +218,10 @@ def plot_cells():
   print("xvals= ",mcds.data['discrete_cells']['position_x'])
   yvals = mcds.data['discrete_cells']['position_y']
 
+  axis_a = mcds.data['discrete_cells']['axis_a']
+  axis_b = mcds.data['discrete_cells']['axis_b']
+  axis_c = mcds.data['discrete_cells']['axis_c']
+
   xlist = deque()
   ylist = deque()
   wlist = deque()
@@ -244,8 +248,11 @@ def plot_cells():
 
       xlist.append(xval)
       ylist.append(yval)
-      width += width_del
-      wlist.append(width)    # "height" of each ellipse/cell
+
+    #   width += width_del
+      a_val = axis_a[icell]
+      wlist.append(a_val)    # "width" of each ellipse/cell
+
       height += height_del
       hlist.append(height)    # "height" of each ellipse/cell
       alist.append(angle + icell*45)

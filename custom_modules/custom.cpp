@@ -315,10 +315,13 @@ std::vector<std::string> my_coloring_function( Cell* pCell )
 
 void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
 { 
-	pCell->phenotype.geometry.axis_a=pCell->custom_data["axis_a"];
-	pCell->phenotype.geometry.axis_b=pCell->custom_data["axis_b"];
-	pCell->phenotype.geometry.axis_c=pCell->custom_data["axis_c"];
-	
+	// pCell->phenotype.geometry.axis_a=pCell->custom_data["axis_a"];
+	// pCell->phenotype.geometry.axis_b=pCell->custom_data["axis_b"];
+	// pCell->phenotype.geometry.axis_c=pCell->custom_data["axis_c"];
+
+	pCell->custom_data["axis_a"] += 8;
+	pCell->custom_data["axis_b"] += 6;
+	pCell->custom_data["axis_c"] += 4;
 	
 	return; 
 }
