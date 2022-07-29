@@ -229,8 +229,7 @@ def plot_cells():
   height_del = 5  # vary just to see different sizes
   width = 30
   width_del = 10  # vary just to see different sizes
-  angle = 0
-  angle_del = 45  # vary just to see different sizes
+  angle = tmins * 45
 
   rgb_list = deque()
 
@@ -257,8 +256,7 @@ def plot_cells():
       wlist.append(width)    # "height" of each ellipse/cell
       height += height_del
       hlist.append(height)    # "height" of each ellipse/cell
-      angle += angle_del
-      alist.append(angle)    
+      alist.append(angle + icell*45)
       rgb_list.append(rgb)
 #      print('rgb_list = ',rgb_list)
 
