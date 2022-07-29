@@ -91,7 +91,8 @@ class RunModel(QWidget):
             self.exec_name.setEnabled(False)
         else:
             # self.exec_name.setText('../myproj')
-            self.exec_name.setText('template')
+            # self.exec_name.setText('template')
+            self.exec_name.setText('morph')
         hbox.addWidget(self.exec_name)
 
         hbox.addWidget(QLabel("Config:"))
