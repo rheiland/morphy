@@ -542,7 +542,8 @@ class Vis(QWidget):
         if self.substrates_checked_flag:  # do first so cells are plotted on top
             self.plot_substrate(self.current_svg_frame)
         if self.cells_checked_flag:
-            self.plot_svg(self.current_svg_frame)
+            # self.plot_svg(self.current_svg_frame)
+            self.plot_morphs(self.current_svg_frame)
 
         self.frame_count.setText(str(self.current_svg_frame))
 
@@ -953,8 +954,174 @@ class Vis(QWidget):
         # plt.subplots_adjust(left=0, bottom=0.05, right=1, top=1, wspace=0, hspace=0)
 
         self.plot_substrate(self.current_svg_frame)
-        self.plot_svg(self.current_svg_frame)
+        # self.plot_svg(self.current_svg_frame)
+        self.plot_morphs(self.current_svg_frame)
         # self.canvas.draw()
+
+
+    #-----------------------------------------------------
+    def ellipses(self, x, y, width, height, angle, c='b', vmin=None, vmax=None, **kwargs):
+        """
+        See https://gist.github.com/syrte/592a062c562cd2a98a83 
+
+        Make a scatter plot of circles. 
+        Similar to plt.scatter, but the size of circles are in data scale.
+        Parameters
+        ----------
+        x, y : scalar or array_like, shape (n, )
+            Input data
+        s : scalar or array_like, shape (n, ) 
+            Radius of circles.
+        c : color or sequence of color, optional, default : 'b'
+            `c` can be a single color format string, or a sequence of color
+            specifications of length `N`, or a sequence of `N` numbers to be
+            mapped to colors using the `cmap` and `norm` specified via kwargs.
+            Note that `c` should not be a single numeric RGB or RGBA sequence 
+            because that is indistinguishable from an array of values
+            to be colormapped. (If you insist, use `color` instead.)  
+            `c` can be a 2-D array in which the rows are RGB or RGBA, however. 
+        vmin, vmax : scalar, optional, default: None
+            `vmin` and `vmax` are used in conjunction with `norm` to normalize
+            luminance data.  If either are `None`, the min and max of the
+            color array is used.
+        kwargs : `~matplotlib.collections.Collection` properties
+            Eg. alpha, edgecolor(ec), facecolor(fc), linewidth(lw), linestyle(ls), 
+            norm, cmap, transform, etc.
+        Returns
+        -------
+        paths : `~matplotlib.collections.PathCollection`
+        Examples
+        --------
+        a = np.arange(11)
+        circles(a, a, s=a*0.2, c=a, alpha=0.5, ec='none')
+        plt.colorbar()
+        License
+        --------
+        This code is under [The BSD 3-Clause License]
+        (http://opensource.org/licenses/BSD-3-Clause)
+        """
+
+        if np.isscalar(c):
+            kwargs.setdefault('color', c)
+            c = None
+
+        if 'fc' in kwargs:
+            kwargs.setdefault('facecolor', kwargs.pop('fc'))
+        if 'ec' in kwargs:
+            kwargs.setdefault('edgecolor', kwargs.pop('ec'))
+        if 'ls' in kwargs:
+            kwargs.setdefault('linestyle', kwargs.pop('ls'))
+        if 'lw' in kwargs:
+            kwargs.setdefault('linewidth', kwargs.pop('lw'))
+        # You can set `facecolor` with an array for each patch,
+        # while you can only set `facecolors` with a value for all.
+
+        # zipped = np.broadcast(x, y, width, height, angle, s)
+        zipped = np.broadcast(x, y, width, height, angle)
+        # patches = [Ellipse((x_, y_), width_, height_, angle_, s_)
+        patches = [Ellipse((x_, y_), width_, height_, angle_)
+                for x_, y_, width_, height_, angle_  in zipped]
+        collection = PatchCollection(patches, **kwargs)
+        if c is not None:
+            c = np.broadcast_to(c, zipped.shape).ravel()
+            collection.set_array(c)
+            collection.set_clim(vmin, vmax)
+
+        # ax = plt.gca()
+        self.ax0.add_collection(collection)
+        self.ax0.autoscale_view()
+        # self.ax0.draw_if_interactive()
+        if c is not None:
+            self.ax0.sci(collection)
+
+        # return collection
+
+    #-----------------------------------------------------
+    def plot_morphs(self, frame):
+        # global current_idx, axes_max
+
+        fname = "output%08d.xml" % frame
+        # fname = "snapshot%08d.svg" % frame
+        full_fname = os.path.join(self.output_dir, fname)
+        if (os.path.isfile(full_fname) == False):
+            print("File does not exist: ",full_fname)
+            return
+        # mcds = pyMCDS(fname,'.')  
+        # mcds = pyMCDS_cells(full_fname,'.')  
+        mcds = pyMCDS_cells(fname, self.output_dir)
+        tmins = mcds.get_time()
+
+        print('time (mins)=',tmins)
+        title_str = "Current time: " + str(tmins)
+
+        num_cells = len(mcds.data['discrete_cells']['ID'])
+        print('num_cells = ',num_cells)
+
+        xvals = mcds.data['discrete_cells']['position_x']
+        print("xvals= ",mcds.data['discrete_cells']['position_x'])
+        yvals = mcds.data['discrete_cells']['position_y']
+
+        axis_a = mcds.data['discrete_cells']['axis_a']
+        axis_b = mcds.data['discrete_cells']['axis_b']
+        axis_c = mcds.data['discrete_cells']['axis_c']
+
+        xlist = deque()
+        ylist = deque()
+        wlist = deque()
+        hlist = deque()
+        alist = deque()
+        rgb_list = deque()
+
+        height = 10
+        height_del = 5  # vary just to see different sizes
+        width = 30
+        width_del = 10  # vary just to see different sizes
+        angle = tmins * 45
+
+
+        #  print('--- child.tag, child.attrib ---')
+        numChildren = 0
+        for icell in range(num_cells):
+            xval = xvals[icell]
+            yval = yvals[icell]
+
+            s = 'red'
+            rgb_tuple = mplc.to_rgb(mplc.cnames[s])  # a tuple
+            rgb = [x for x in rgb_tuple]
+
+            xlist.append(xval)
+            ylist.append(yval)
+
+            #   width += width_del
+            a_val = axis_a[icell]
+            wlist.append(a_val)    # "width" of each ellipse/cell
+
+            height += height_del
+            hlist.append(height)    # "height" of each ellipse/cell
+            alist.append(angle + icell*45)
+            rgb_list.append(rgb)
+
+        xvals = np.array(xlist)
+        yvals = np.array(ylist)
+        widths = np.array(wlist)
+        heights = np.array(hlist)
+        angles = np.array(alist)
+        rgbs =  np.array(rgb_list)
+
+        # plt.cla()
+        # title_str += " (" + str(num_cells) + " agents)"
+        # plt.title(title_str)
+        # plt.xlim(axes_min,axes_max)
+        # plt.ylim(axes_min,axes_max)
+
+        self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
+        self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
+        self.ax0.tick_params(labelsize=self.fontsize)
+        self.ax0.set_facecolor(self.bgcolor)
+
+        self.ellipses(xvals,yvals, widths, heights, angles, color=rgbs)
+
+        self.ax0.set_aspect(1.0)
 
     #---------------------------------------------------------------------------
     def circles(self, x, y, s, c='b', vmin=None, vmax=None, **kwargs):
