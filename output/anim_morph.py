@@ -220,10 +220,10 @@ def plot_cells():
 
   xlist = deque()
   ylist = deque()
-  rlist = deque()
   wlist = deque()
   hlist = deque()
   alist = deque()
+  rgb_list = deque()
 
   height = 10
   height_del = 5  # vary just to see different sizes
@@ -231,67 +231,40 @@ def plot_cells():
   width_del = 10  # vary just to see different sizes
   angle = tmins * 45
 
-  rgb_list = deque()
 
 #  print('--- child.tag, child.attrib ---')
   numChildren = 0
   for icell in range(num_cells):
-#      print("--- found width --> axes_max =", axes_max)
-    # if child.text and "Current time" in child.text:
-    #   svals = child.text.split()
-    #   title_str = "(" + str(current_idx) + ") Current time: " + svals[2] + "d, " + svals[4] + "h, " + svals[7] + "m"
-
       xval = xvals[icell]
       yval = yvals[icell]
 
-    #   s = circle.attrib['fill']
       s = 'red'
       rgb_tuple = mplc.to_rgb(mplc.cnames[s])  # a tuple
       rgb = [x for x in rgb_tuple]
-      rval = 15.0   # radius
+
       xlist.append(xval)
       ylist.append(yval)
-      rlist.append(rval)
       width += width_del
       wlist.append(width)    # "height" of each ellipse/cell
       height += height_del
       hlist.append(height)    # "height" of each ellipse/cell
       alist.append(angle + icell*45)
       rgb_list.append(rgb)
-#      print('rgb_list = ',rgb_list)
-
-    # num_cells += 1
-
-#    if num_cells > 3:   # for debugging
-#      print(fname,':  num_cells= ',num_cells," --- debug exit.")
-#      sys.exit(1)
-#      break
-
 
   xvals = np.array(xlist)
   yvals = np.array(ylist)
-  rvals = np.array(rlist)
   widths = np.array(wlist)
   heights = np.array(hlist)
   angles = np.array(alist)
   rgbs =  np.array(rgb_list)
-#  print('type(rgbs) = ',type(rgbs))
-#  print('rgbs = ',rgbs)
-#print("xvals[0:5]=",xvals[0:5])
-#print("rvals[0:5]=",rvals[0:5])
-#  print("rvals.min, max=",rvals.min(),rvals.max())
 
   plt.cla()
   title_str += " (" + str(num_cells) + " agents)"
   plt.title(title_str)
   plt.xlim(axes_min,axes_max)
   plt.ylim(axes_min,axes_max)
-  #ellipses(xvals,yvals, widths, heights, angles, s=rvals, color=rgbs)
+
   ellipses(xvals,yvals, widths, heights, angles, color=rgbs)
-#   ells = [Ellipse(xy=np.random.rand(2) * 10,
-#                 width=np.random.rand(), height=np.random.rand(),
-#                 angle=np.random.rand() * 360)
-        # for i in range(NUM)]
   plt.pause(time_delay)
 
 step_value = 1
