@@ -1058,8 +1058,15 @@ class Vis(QWidget):
         print('num_cells = ',num_cells)
 
         xvals = mcds.data['discrete_cells']['position_x']
-        print("xvals= ",mcds.data['discrete_cells']['position_x'])
         yvals = mcds.data['discrete_cells']['position_y']
+        print("xvals= ",xvals)
+        print("yvals= ",yvals)
+
+        xmotile = mcds.data['discrete_cells']['motility_vector_x']
+        ymotile = mcds.data['discrete_cells']['motility_vector_y']
+        print("xmotile= ",xmotile)
+        print("ymotile= ",ymotile)
+        
 
         axis_a = mcds.data['discrete_cells']['axis_a']
         axis_b = mcds.data['discrete_cells']['axis_b']
@@ -1107,6 +1114,9 @@ class Vis(QWidget):
             hlist.append(b_val)    # "height" of each ellipse/cell
 
             # alist.append(angle + icell*10)
+            # compute angle based on normalized motility vector
+            angle = np.arctan(yval/xval) * 57.3 + 90.  # convert to degs
+            print("----- angle= ",angle)
             alist.append(angle)
             rgb_list.append(rgb)
 
