@@ -48,7 +48,7 @@ def SingleBrowse(self):
 def startup_notice():
     msgBox = QMessageBox()
     msgBox.setIcon(QMessageBox.Information)
-    msgBox.setText("Editing the template config file from the PMB /data directory. If you want to edit another, use File->Open or File->Samples")
+    msgBox.setText("Editing /data/morphy.xml. If you want to edit another, use File->Open or File->Samples")
     #    msgBox.setWindowTitle("Example")
     msgBox.setStandardButtons(QMessageBox.Ok)
     # msgBox.buttonClicked.connect(msgButtonClick)
