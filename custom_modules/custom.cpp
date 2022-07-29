@@ -323,6 +323,33 @@ void setup_tissue( void )
 std::vector<std::string> my_coloring_function( Cell* pCell )
 { return paint_by_number_cell_coloring(pCell); }
 
+void update_motility_vector(Cell* pCell, Phenotype& phenotype, double dt_)
+{
+    std::cout << "------------  (custom) update_motility_vector \n";
+    int a,b,angle;
+    double x,y;
+    double pi = 3.141592653589793238462643383279502884;
+    a = pCell->custom_data["axis_a"];
+    b = pCell->custom_data["axis_b"];
+    angle = ((pCell->custom_data["ori_z"])*pi)/180;
+    double angle90 = (90*pi)/180;
+    double speed = phenotype.motility.migration_speed;
+    double max_axis = std::max(a,b);
+    std::cout << "max= " << max_axis;
+    if (max_axis == pCell->custom_data["axis_a"])
+    {
+        x = speed*cos(angle);
+        y = speed*sin(angle);
+        phenotype.motility.motility_vector.assign(x, y);
+    }
+    else if (max_axis == pCell->custom_data["axis_b"])
+    {
+        x = speed*cos(angle+angle90);
+        y = speed*sin(angle+angle90);
+        phenotype.motility.motility_vector.assign(x, y);
+    }
+}
+
 void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
 { 
 	// pCell->phenotype.geometry.axis_a=pCell->custom_data["axis_a"];
@@ -332,6 +359,8 @@ void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
 	pCell->custom_data["axis_a"] += 4;
 	pCell->custom_data["axis_b"] += 10;
 	pCell->custom_data["axis_c"] += 2;
+
+    // update_motility_vector(pCell, phenotype, dt);
 	
 	return; 
 }
