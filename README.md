@@ -14,4 +14,6 @@ Some edits I've made:
 * edited setup_tissue() in custom.cpp: for now, just define 4 cells; plus, I think the `axis_*` params were missing from <user_params>
 * added `beta/anim_morph.py` for simple plotting (and also into /output, but it may get deleted if the `clean` or other Makefile target does so)
 * cloned/copied the PMB into the root dir (might make it unique to this project)
+* hacked `phenotype_function` in custom.cpp to do something silly, but at least provide dynamics, with the `axis_*` custom vars
+* continue to make tweaks to anim_morph.py
 * more to come...
