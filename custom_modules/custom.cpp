@@ -202,123 +202,7 @@ double custom_volume_update(double a, double b, double c )
 	double ellipsoid_volume= four_thirds_pi*a*b*c;
 	return ellipsoid_volume;
 }
-void setup_tissue_4cells( void )
-{
-	double Xmin = microenvironment.mesh.bounding_box[0]; 
-	double Ymin = microenvironment.mesh.bounding_box[1]; 
-	double Zmin = microenvironment.mesh.bounding_box[2]; 
-
-	double Xmax = microenvironment.mesh.bounding_box[3]; 
-	double Ymax = microenvironment.mesh.bounding_box[4]; 
-	double Zmax = microenvironment.mesh.bounding_box[5]; 
-	
-	if( default_microenvironment_options.simulate_2D == true )
-	{
-		Zmin = 0.0; 
-		Zmax = 0.0; 
-	}
-	
-	double Xrange = Xmax - Xmin; 
-	double Yrange = Ymax - Ymin; 
-	double Zrange = Zmax - Zmin; 
-	
-	// draw 1 cell 
-	
-	Cell* pC;
-	
-	for( int k=0; k < 1 ; k++ )
-	{
-        std::vector<double> position = {0,0,0}; 
-		Cell_Definition* pCD = cell_definitions_by_index[k]; 
-
-        // read the 
-
-        position[2] = 0.0;
-
-        double x0 = 70.;
-        double y0 = 40.;
-
-	    double pi = 3.141592653589793238462643383279502884;
-		double semimajor = parameters.doubles("major_axis_2a")/2;
-		double ecc = parameters.doubles("eccentricity");
-		double vol = parameters.doubles("starting_cell_volume");
-		double b_axis_calc = pow( pow(semimajor,2)*(1-pow(ecc,2)), 0.5);
-		double c_axis_calc = (3*vol)/( 4*pi*pow(((1-ecc)*pow(semimajor,2) ),0.5));
-
-		std::cout << "ecc " << ecc << " ... " << std::endl;
-		std::cout << "bax " << b_axis_calc << " ... " << std::endl; 
-
-        // create 4 cells around the origin (in Z=0 plane)
-        pC = create_cell( *pCD ); 
-        position[0] = x0;
-        position[1] = 0.; 
-        pC->assign_position( position );
-        pC->custom_data["axis_a"] = semimajor;
-        pC->custom_data["axis_b"] = b_axis_calc;
-        pC->custom_data["axis_c"] = c_axis_calc;
-        double new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-        pC->set_total_volume(new_volume);
-
-        pC = create_cell( *pCD ); 
-        position[0] = -x0;
-        position[1] = 0; 
-        pC->assign_position( position );
-        pC->custom_data["axis_a"] = semimajor;
-        pC->custom_data["axis_b"] = b_axis_calc;
-        pC->custom_data["axis_c"] = c_axis_calc;
-        new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-        pC->set_total_volume(new_volume);
-
-        pC = create_cell( *pCD ); 
-        position[0] = 0;
-        position[1] = y0; 
-        pC->assign_position( position );
-        pC->custom_data["axis_a"] = semimajor;
-        pC->custom_data["axis_b"] = b_axis_calc;
-        pC->custom_data["axis_c"] = c_axis_calc;
-        new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-        pC->set_total_volume(new_volume);
-
-        pC = create_cell( *pCD ); 
-        position[0] = 0;
-        position[1] = -y0; 
-        pC->assign_position( position );
-        pC->custom_data["axis_a"] = semimajor;
-        pC->custom_data["axis_b"] = b_axis_calc;
-        pC->custom_data["axis_c"] = c_axis_calc;
-        new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-        pC->set_total_volume(new_volume);
-        std::cout << "new_volume= " << new_volume << std::endl;
-
-        // std::cout << pC->ID << ", " <<
-
-        // std::cout << "Placing cells of type " << pCD->name << " ... " << std::endl; 
-		// for( int n = 0 ; n < 1; n++ )
-		// {
-		// 	std::vector<double> position = {0,0,0}; 
-		// 	position[0] = parameters.doubles("cx");
-		// 	position[1] = parameters.doubles("cy"); 
-		// 	position[2] = parameters.doubles("cz");
-
-		// 	pC = create_cell( *pCD ); 
-		// 	pC->assign_position( position );
-
-		// 	pC->custom_data["axis_a"]=parameters.doubles("axis_a");
-		// 	pC->custom_data["axis_b"]=parameters.doubles("axis_b");
-		// 	pC->custom_data["axis_c"]=parameters.doubles("axis_c");
-        //     std::cout << pC->ID << ", " <<
-		// 	double new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-		// 	pC->set_total_volume(new_volume);
-		// 	//std::cout<< pC->custom_data["test_list"]<<std::endl;;
-		// }
-	}
-	std::cout << std::endl; 
-	
-	// load cells from your CSV file (if enabled)
-	load_cells_from_pugixml(); 	
-	
-	return; 
-}
+//-----------------------------------------
 void setup_tissue( void )
 {
 	double Xmin = microenvironment.mesh.bounding_box[0]; 
@@ -338,24 +222,22 @@ void setup_tissue( void )
 	double Xrange = Xmax - Xmin; 
 	double Yrange = Ymax - Ymin; 
 	double Zrange = Zmax - Zmin; 
-	
-	// draw 1 cell 
-	
+
+    double radius = 0.4 * Xrange;
 	Cell* pC;
 	
-	for( int k=0; k < 1 ; k++ )
+    std::vector<double> position = {0,0,0}; 
+    static double pi = 3.141592653589793238462643383279502884;
+    // double theta = 0.0;
+    double theta = 4.2;  // about 2/3 of 2pi
+    // double theta_del = 2.0*pi / parameters.ints("number_of_cells");
+    double theta_del = -2.0*pi / 3.0 / parameters.ints("number_of_cells");
+    position[2] = 0.0;
+	for( int k=0; k <parameters.ints("number_of_cells") ; k++ )
 	{
-        std::vector<double> position = {0,0,0}; 
-		Cell_Definition* pCD = cell_definitions_by_index[k]; 
+		// Cell_Definition* pCD = cell_definitions_by_index[k]; 
+		Cell_Definition* pCD = cell_definitions_by_name["ellipsey"]; 
 
-        // read the 
-
-        position[2] = 0.0;
-
-        double x0 = 70.;
-        double y0 = 40.;
-
-	    double pi = 3.141592653589793238462643383279502884;
 		double semimajor = parameters.doubles("major_axis_2a")/2;
 		double ecc = parameters.doubles("eccentricity");
 		double vol = parameters.doubles("starting_cell_volume");
@@ -370,67 +252,38 @@ void setup_tissue( void )
 
         // create 4 cells around the origin (in Z=0 plane)
         pC = create_cell( *pCD ); 
-        position[0] = x0;
-        position[1] = 0.; 
+        position[0] = radius * std::cos(theta);
+        position[1] = radius * std::sin(theta);
         pC->assign_position( position );
+
         pC->custom_data["axis_a"] = semimajor;
         pC->custom_data["axis_b"] = b_axis_calc;
         pC->custom_data["axis_c"] = c_axis_calc;
         double new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
         pC->set_total_volume(new_volume);
-
-        pC = create_cell( *pCD ); 
-        position[0] = -x0;
-        position[1] = 0; 
-        pC->assign_position( position );
-        pC->custom_data["axis_a"] = semimajor;
-        pC->custom_data["axis_b"] = b_axis_calc;
-        pC->custom_data["axis_c"] = c_axis_calc;
-        new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-        pC->set_total_volume(new_volume);
-
-        pC = create_cell( *pCD ); 
-        position[0] = 0;
-        position[1] = y0; 
-        pC->assign_position( position );
-        pC->custom_data["axis_a"] = semimajor;
-        pC->custom_data["axis_b"] = b_axis_calc;
-        pC->custom_data["axis_c"] = c_axis_calc;
-        new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-        pC->set_total_volume(new_volume);
-
-        pC = create_cell( *pCD ); 
-        position[0] = 0;
-        position[1] = -y0; 
-        pC->assign_position( position );
-        pC->custom_data["axis_a"] = semimajor;
-        pC->custom_data["axis_b"] = b_axis_calc;
-        pC->custom_data["axis_c"] = c_axis_calc;
-        new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-        pC->set_total_volume(new_volume);
-        std::cout << "new_volume= " << new_volume << std::endl;
-
         // std::cout << pC->ID << ", " <<
+        theta += theta_del;
+	}
 
-        // std::cout << "Placing cells of type " << pCD->name << " ... " << std::endl; 
-		// for( int n = 0 ; n < 1; n++ )
-		// {
-		// 	std::vector<double> position = {0,0,0}; 
-		// 	position[0] = parameters.doubles("cx");
-		// 	position[1] = parameters.doubles("cy"); 
-		// 	position[2] = parameters.doubles("cz");
-
-		// 	pC = create_cell( *pCD ); 
-		// 	pC->assign_position( position );
-
-		// 	pC->custom_data["axis_a"]=parameters.doubles("axis_a");
-		// 	pC->custom_data["axis_b"]=parameters.doubles("axis_b");
-		// 	pC->custom_data["axis_c"]=parameters.doubles("axis_c");
-        //     std::cout << pC->ID << ", " <<
-		// 	double new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
-		// 	pC->set_total_volume(new_volume);
-		// 	//std::cout<< pC->custom_data["test_list"]<<std::endl;;
-		// }
+    double x0 = -0.2 * Xrange;
+    double xdel = 3.0;
+    position[1] = -20.;
+    int nbricks = 20;
+    Cell_Definition* pCD = cell_definitions_by_name["wall"]; 
+	for( int k=0; k <nbricks; k++ )
+	{
+        pC = create_cell( *pCD ); 
+        pC->is_movable = false;
+        position[0] = x0 + k*xdel;
+        pC->assign_position( position );
+	}
+    position[1] = 20.;
+	for( int k=0; k <nbricks; k++ )
+	{
+        pC = create_cell( *pCD ); 
+        pC->is_movable = false;
+        position[0] = x0 + k*xdel;
+        pC->assign_position( position );
 	}
 	std::cout << std::endl; 
 	
@@ -439,6 +292,74 @@ void setup_tissue( void )
 	
 	return; 
 }
+
+// void setup_tissue_ring( void )
+// {
+// 	double Xmin = microenvironment.mesh.bounding_box[0]; 
+// 	double Ymin = microenvironment.mesh.bounding_box[1]; 
+// 	double Zmin = microenvironment.mesh.bounding_box[2]; 
+
+// 	double Xmax = microenvironment.mesh.bounding_box[3]; 
+// 	double Ymax = microenvironment.mesh.bounding_box[4]; 
+// 	double Zmax = microenvironment.mesh.bounding_box[5]; 
+	
+// 	if( default_microenvironment_options.simulate_2D == true )
+// 	{
+// 		Zmin = 0.0; 
+// 		Zmax = 0.0; 
+// 	}
+	
+// 	double Xrange = Xmax - Xmin; 
+// 	double Yrange = Ymax - Ymin; 
+// 	double Zrange = Zmax - Zmin; 
+
+//     double radius = 0.4 * Xrange;
+// 	Cell* pC;
+	
+//     std::vector<double> position = {0,0,0}; 
+//     static double pi = 3.141592653589793238462643383279502884;
+//     double theta_del = 2.0*pi / parameters.ints("number_of_cells");
+//     // double theta = 0.0;
+//     double theta = 0.2;
+//     position[2] = 0.0;
+// 	for( int k=0; k <parameters.ints("number_of_cells") ; k++ )
+// 	{
+// 		// Cell_Definition* pCD = cell_definitions_by_index[k]; 
+// 		Cell_Definition* pCD = cell_definitions_by_name["ellipsey"]; 
+
+// 		double semimajor = parameters.doubles("major_axis_2a")/2;
+// 		double ecc = parameters.doubles("eccentricity");
+// 		double vol = parameters.doubles("starting_cell_volume");
+// 		// double b_axis_calc = pow( pow(semimajor,2)*(1-pow(ecc,2)), 0.5);
+// 		// double c_axis_calc = (3*vol)/( 4*pi*pow(((1-ecc)*pow(semimajor,2) ),0.5));
+//         // Didi update 7-29-22
+//         double b_axis_calc = semimajor*pow( (1.0-pow(ecc,2)), 0.5);
+//         double c_axis_calc = (3.0*vol)/( 4.0*pi*pow(semimajor,2)*pow((1-ecc),0.5));
+
+// 		std::cout << "ecc " << ecc << " ... " << std::endl;
+// 		std::cout << "bax " << b_axis_calc << " ... " << std::endl; 
+
+//         // create 4 cells around the origin (in Z=0 plane)
+//         pC = create_cell( *pCD ); 
+//         position[0] = radius * std::cos(theta);
+//         position[1] = radius * std::sin(theta);
+//         pC->assign_position( position );
+
+//         pC->custom_data["axis_a"] = semimajor;
+//         pC->custom_data["axis_b"] = b_axis_calc;
+//         pC->custom_data["axis_c"] = c_axis_calc;
+//         double new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
+//         pC->set_total_volume(new_volume);
+//         // std::cout << pC->ID << ", " <<
+//         theta += theta_del;
+// 	}
+// 	std::cout << std::endl; 
+	
+// 	// load cells from your CSV file (if enabled)
+// 	load_cells_from_pugixml(); 	
+	
+// 	return; 
+// }
 
 std::vector<std::string> my_coloring_function( Cell* pCell )
 { return paint_by_number_cell_coloring(pCell); }
@@ -513,9 +434,19 @@ void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
 	// pCell->phenotype.geometry.axis_b=pCell->custom_data["axis_b"];
 	// pCell->phenotype.geometry.axis_c=pCell->custom_data["axis_c"];
 
-	pCell->custom_data["axis_a"] += 4;
-	pCell->custom_data["axis_b"] += 10;
-	pCell->custom_data["axis_c"] += 2;
+    if (pCell->type_name.compare("ellipsey") == 0)
+    {
+        pCell->custom_data["axis_a"] += 4;
+        pCell->custom_data["axis_b"] += 10;
+        pCell->custom_data["axis_c"] += 2;
+    }
+    else
+    {
+        double axis_length = 4.0;
+        pCell->custom_data["axis_a"] = axis_length;
+        pCell->custom_data["axis_b"] = axis_length;
+        pCell->custom_data["axis_c"] = axis_length;
+    }
 
     // update_motility_vector(pCell, phenotype, dt);
 	

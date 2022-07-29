@@ -958,6 +958,83 @@ class Vis(QWidget):
         self.plot_morphs(self.current_svg_frame)
         # self.canvas.draw()
 
+    #---------------------------------------------------------------------------
+    def circles(self, x, y, s, c='b', vmin=None, vmax=None, **kwargs):
+        """
+        See https://gist.github.com/syrte/592a062c562cd2a98a83 
+
+        Make a scatter plot of circles. 
+        Similar to plt.scatter, but the size of circles are in data scale.
+        Parameters
+        ----------
+        x, y : scalar or array_like, shape (n, )
+            Input data
+        s : scalar or array_like, shape (n, ) 
+            Radius of circles.
+        c : color or sequence of color, optional, default : 'b'
+            `c` can be a single color format string, or a sequence of color
+            specifications of length `N`, or a sequence of `N` numbers to be
+            mapped to colors using the `cmap` and `norm` specified via kwargs.
+            Note that `c` should not be a single numeric RGB or RGBA sequence 
+            because that is indistinguishable from an array of values
+            to be colormapped. (If you insist, use `color` instead.)  
+            `c` can be a 2-D array in which the rows are RGB or RGBA, however. 
+        vmin, vmax : scalar, optional, default: None
+            `vmin` and `vmax` are used in conjunction with `norm` to normalize
+            luminance data.  If either are `None`, the min and max of the
+            color array is used.
+        kwargs : `~matplotlib.collections.Collection` properties
+            Eg. alpha, edgecolor(ec), facecolor(fc), linewidth(lw), linestyle(ls), 
+            norm, cmap, transform, etc.
+        Returns
+        -------
+        paths : `~matplotlib.collections.PathCollection`
+        Examples
+        --------
+        a = np.arange(11)
+        circles(a, a, s=a*0.2, c=a, alpha=0.5, ec='none')
+        plt.colorbar()
+        License
+        --------
+        This code is under [The BSD 3-Clause License]
+        (http://opensource.org/licenses/BSD-3-Clause)
+        """
+
+        if np.isscalar(c):
+            kwargs.setdefault('color', c)
+            c = None
+
+        if 'fc' in kwargs:
+            kwargs.setdefault('facecolor', kwargs.pop('fc'))
+        if 'ec' in kwargs:
+            kwargs.setdefault('edgecolor', kwargs.pop('ec'))
+        if 'ls' in kwargs:
+            kwargs.setdefault('linestyle', kwargs.pop('ls'))
+        if 'lw' in kwargs:
+            kwargs.setdefault('linewidth', kwargs.pop('lw'))
+        # You can set `facecolor` with an array for each patch,
+        # while you can only set `facecolors` with a value for all.
+
+        zipped = np.broadcast(x, y, s)
+        patches = [Circle((x_, y_), s_)
+                for x_, y_, s_ in zipped]
+        collection = PatchCollection(patches, **kwargs)
+        if c is not None:
+            c = np.broadcast_to(c, zipped.shape).ravel()
+            collection.set_array(c)
+            collection.set_clim(vmin, vmax)
+
+        # ax = plt.gca()
+        # ax.add_collection(collection)
+        # ax.autoscale_view()
+        self.ax0.add_collection(collection)
+        self.ax0.autoscale_view()
+        # plt.draw_if_interactive()
+        if c is not None:
+            # plt.sci(collection)
+            self.ax0.sci(collection)
+        # return collection
+
 
     #-----------------------------------------------------
     def ellipses(self, x, y, width, height, angle, c='b', vmin=None, vmax=None, **kwargs):
@@ -1057,6 +1134,8 @@ class Vis(QWidget):
         num_cells = len(mcds.data['discrete_cells']['ID'])
         print('num_cells = ',num_cells)
 
+        ctype = mcds.data['discrete_cells']['cell_type']
+
         xvals = mcds.data['discrete_cells']['position_x']
         yvals = mcds.data['discrete_cells']['position_y']
         print("xvals= ",xvals)
@@ -1071,11 +1150,17 @@ class Vis(QWidget):
         axis_a = mcds.data['discrete_cells']['axis_a']
         axis_b = mcds.data['discrete_cells']['axis_b']
         axis_c = mcds.data['discrete_cells']['axis_c']
+        
+        volume = mcds.data['discrete_cells']['total_volume']  # V = 4/3 pi r^3
+        rvals = volume * 0.75 / np.pi
+        rvals = np.cbrt(rvals) # V = 4/3 pi r^3
+        print("plot_morphs():  rvals.min(), max() = ", rvals.min(),rvals.max())
 
         xlist = deque()
         ylist = deque()
         wlist = deque()
         hlist = deque()
+        rlist = deque()
         alist = deque()
         rgb_list = deque()
 
@@ -1088,43 +1173,110 @@ class Vis(QWidget):
         # angle = tmins * 45
         angle = tmins * 10
 
-
-        #  print('--- child.tag, child.attrib ---')
         numChildren = 0
+
+        plot_ellipses = False
+        plot_ellipses = True
+        if plot_ellipses:
+            for icell in range(num_cells):
+                if ctype[icell] > 0:
+                    continue
+                xval = xvals[icell]
+                yval = yvals[icell]
+                rval = rvals[icell]
+
+                s = 'red'
+                rgb_tuple = mplc.to_rgb(mplc.cnames[s])  # a tuple
+                rgb = [x for x in rgb_tuple]
+
+                xlist.append(xval)
+                ylist.append(yval)
+                rlist.append(rval)
+
+                #   width += width_del
+                a_val = axis_a[icell] / 2.0
+                a_val = 10.
+                wlist.append(a_val)    # "width" of each ellipse/cell
+
+                # height += height_del
+                b_val = axis_b[icell] / 2.0
+                b_val = 15.
+                # hlist.append(height)    # "height" of each ellipse/cell
+                hlist.append(b_val)    # "height" of each ellipse/cell
+
+                # alist.append(angle + icell*10)
+                # compute angle based on normalized motility vector
+                angle = np.arctan(yval/xval) * 57.3 + 90.  # convert to degs
+                print("----- angle= ",angle)
+                alist.append(angle)
+                rgb_list.append(rgb)
+
+            xvals2 = np.array(xlist)
+            yvals2 = np.array(ylist)
+            widths = np.array(wlist)
+            heights = np.array(hlist)
+            angles = np.array(alist)
+            rgbs =  np.array(rgb_list)
+
+            # plt.cla()
+            # title_str += " (" + str(num_cells) + " agents)"
+            # plt.title(title_str)
+            # plt.xlim(axes_min,axes_max)
+            # plt.ylim(axes_min,axes_max)
+
+            self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
+            self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
+            self.ax0.tick_params(labelsize=self.fontsize)
+            self.ax0.set_facecolor(self.bgcolor)
+
+            self.ellipses(xvals2, yvals2, widths, heights, angles, color=rgbs)
+
+
+        # Now plot non-ellipse (e.g., wall)
+        xlist = deque()
+        ylist = deque()
+        rlist = deque()
+        rgb_list = deque()
         for icell in range(num_cells):
+            if ctype[icell] == 0:
+                continue
             xval = xvals[icell]
             yval = yvals[icell]
+            rval = rvals[icell]
 
-            s = 'red'
+            s = 'black'
             rgb_tuple = mplc.to_rgb(mplc.cnames[s])  # a tuple
             rgb = [x for x in rgb_tuple]
 
             xlist.append(xval)
             ylist.append(yval)
+            rlist.append(rval)
 
-            #   width += width_del
-            a_val = axis_a[icell] / 2.0
-            a_val = 10.
-            wlist.append(a_val)    # "width" of each ellipse/cell
+            # #   width += width_del
+            # a_val = axis_a[icell] / 2.0
+            # a_val = 10.
+            # wlist.append(a_val)    # "width" of each ellipse/cell
 
-            # height += height_del
-            b_val = axis_b[icell] / 2.0
-            b_val = 15.
-            # hlist.append(height)    # "height" of each ellipse/cell
-            hlist.append(b_val)    # "height" of each ellipse/cell
+            # # height += height_del
+            # b_val = axis_b[icell] / 2.0
+            # b_val = 15.
+            # # hlist.append(height)    # "height" of each ellipse/cell
+            # hlist.append(b_val)    # "height" of each ellipse/cell
 
-            # alist.append(angle + icell*10)
-            # compute angle based on normalized motility vector
-            angle = np.arctan(yval/xval) * 57.3 + 90.  # convert to degs
-            print("----- angle= ",angle)
-            alist.append(angle)
+            # # alist.append(angle + icell*10)
+            # # compute angle based on normalized motility vector
+            # angle = np.arctan(yval/xval) * 57.3 + 90.  # convert to degs
+            # print("----- angle= ",angle)
+            # alist.append(angle)
+
             rgb_list.append(rgb)
 
-        xvals = np.array(xlist)
-        yvals = np.array(ylist)
-        widths = np.array(wlist)
-        heights = np.array(hlist)
-        angles = np.array(alist)
+        xvals2 = np.array(xlist)
+        yvals2 = np.array(ylist)
+        rvals2 = np.array(rlist)
+        # widths = np.array(wlist)
+        # heights = np.array(hlist)
+        # angles = np.array(alist)
         rgbs =  np.array(rgb_list)
 
         # plt.cla()
@@ -1138,86 +1290,10 @@ class Vis(QWidget):
         self.ax0.tick_params(labelsize=self.fontsize)
         self.ax0.set_facecolor(self.bgcolor)
 
-        self.ellipses(xvals,yvals, widths, heights, angles, color=rgbs)
+        # self.circles(xvals2,yvals2, 6, color=rgbs)
+        self.circles(xvals2,yvals2, rvals2, color=rgbs)
 
         self.ax0.set_aspect(1.0)
-
-    #---------------------------------------------------------------------------
-    def circles(self, x, y, s, c='b', vmin=None, vmax=None, **kwargs):
-        """
-        See https://gist.github.com/syrte/592a062c562cd2a98a83 
-
-        Make a scatter plot of circles. 
-        Similar to plt.scatter, but the size of circles are in data scale.
-        Parameters
-        ----------
-        x, y : scalar or array_like, shape (n, )
-            Input data
-        s : scalar or array_like, shape (n, ) 
-            Radius of circles.
-        c : color or sequence of color, optional, default : 'b'
-            `c` can be a single color format string, or a sequence of color
-            specifications of length `N`, or a sequence of `N` numbers to be
-            mapped to colors using the `cmap` and `norm` specified via kwargs.
-            Note that `c` should not be a single numeric RGB or RGBA sequence 
-            because that is indistinguishable from an array of values
-            to be colormapped. (If you insist, use `color` instead.)  
-            `c` can be a 2-D array in which the rows are RGB or RGBA, however. 
-        vmin, vmax : scalar, optional, default: None
-            `vmin` and `vmax` are used in conjunction with `norm` to normalize
-            luminance data.  If either are `None`, the min and max of the
-            color array is used.
-        kwargs : `~matplotlib.collections.Collection` properties
-            Eg. alpha, edgecolor(ec), facecolor(fc), linewidth(lw), linestyle(ls), 
-            norm, cmap, transform, etc.
-        Returns
-        -------
-        paths : `~matplotlib.collections.PathCollection`
-        Examples
-        --------
-        a = np.arange(11)
-        circles(a, a, s=a*0.2, c=a, alpha=0.5, ec='none')
-        plt.colorbar()
-        License
-        --------
-        This code is under [The BSD 3-Clause License]
-        (http://opensource.org/licenses/BSD-3-Clause)
-        """
-
-        if np.isscalar(c):
-            kwargs.setdefault('color', c)
-            c = None
-
-        if 'fc' in kwargs:
-            kwargs.setdefault('facecolor', kwargs.pop('fc'))
-        if 'ec' in kwargs:
-            kwargs.setdefault('edgecolor', kwargs.pop('ec'))
-        if 'ls' in kwargs:
-            kwargs.setdefault('linestyle', kwargs.pop('ls'))
-        if 'lw' in kwargs:
-            kwargs.setdefault('linewidth', kwargs.pop('lw'))
-        # You can set `facecolor` with an array for each patch,
-        # while you can only set `facecolors` with a value for all.
-
-        zipped = np.broadcast(x, y, s)
-        patches = [Circle((x_, y_), s_)
-                for x_, y_, s_ in zipped]
-        collection = PatchCollection(patches, **kwargs)
-        if c is not None:
-            c = np.broadcast_to(c, zipped.shape).ravel()
-            collection.set_array(c)
-            collection.set_clim(vmin, vmax)
-
-        # ax = plt.gca()
-        # ax.add_collection(collection)
-        # ax.autoscale_view()
-        self.ax0.add_collection(collection)
-        self.ax0.autoscale_view()
-        # plt.draw_if_interactive()
-        if c is not None:
-            # plt.sci(collection)
-            self.ax0.sci(collection)
-        # return collection
 
     #------------------------------------------------------------
     # not currently used, but maybe useful
@@ -1280,274 +1356,274 @@ class Vis(QWidget):
 
     #------------------------------------------------------------
     # def plot_svg(self, frame, rdel=''):
-    def plot_svg(self, frame):
-        # global current_idx, axes_max
-        # global current_frame
+#     def plot_svg(self, frame):
+#         # global current_idx, axes_max
+#         # global current_frame
 
-        # return
+#         # return
 
-        if self.show_grid:
-            self.plot_mechanics_grid()
+#         if self.show_grid:
+#             self.plot_mechanics_grid()
 
-        if self.show_vectors:
-            self.plot_vecs()
+#         if self.show_vectors:
+#             self.plot_vecs()
 
-        # current_frame = frame
-        # self.current_frame = frame
-        fname = "snapshot%08d.svg" % frame
-        full_fname = os.path.join(self.output_dir, fname)
-        # try:
-        #     print("   ==>>>>> plot_svg(): full_fname=",full_fname)
-        # except:
-        #     print("plot_svg(): ERROR:  full_name invalid")   
-        #     return
-        # with debug_view:
-            # print("plot_svg:", full_fname) 
-        # print("-- plot_svg:", full_fname) 
-        if not os.path.isfile(full_fname):
-            # print("Once output files are generated, click the slider.")   
-            print("plot_svg(): Warning: filename not found: ",full_fname)
-            return
+#         # current_frame = frame
+#         # self.current_frame = frame
+#         fname = "snapshot%08d.svg" % frame
+#         full_fname = os.path.join(self.output_dir, fname)
+#         # try:
+#         #     print("   ==>>>>> plot_svg(): full_fname=",full_fname)
+#         # except:
+#         #     print("plot_svg(): ERROR:  full_name invalid")   
+#         #     return
+#         # with debug_view:
+#             # print("plot_svg:", full_fname) 
+#         # print("-- plot_svg:", full_fname) 
+#         if not os.path.isfile(full_fname):
+#             # print("Once output files are generated, click the slider.")   
+#             print("plot_svg(): Warning: filename not found: ",full_fname)
+#             return
 
-        # self.ax0.cla()
-        self.title_str = ""
+#         # self.ax0.cla()
+#         self.title_str = ""
 
-# https://stackoverflow.com/questions/5263034/remove-colorbar-from-figure-in-matplotlib
-# def foo(self):
-#    self.subplot.clear()
-#    hb = self.subplot.hexbin(...)
-#    if self.cb:
-#       self.figure.delaxes(self.figure.axes[1])
-#       self.figure.subplots_adjust(right=0.90)  #default right padding
-#    self.cb = self.figure.colorbar(hb)
+# # https://stackoverflow.com/questions/5263034/remove-colorbar-from-figure-in-matplotlib
+# # def foo(self):
+# #    self.subplot.clear()
+# #    hb = self.subplot.hexbin(...)
+# #    if self.cb:
+# #       self.figure.delaxes(self.figure.axes[1])
+# #       self.figure.subplots_adjust(right=0.90)  #default right padding
+# #    self.cb = self.figure.colorbar(hb)
 
-        # if self.cbar:
-            # self.cbar.remove()
+#         # if self.cbar:
+#             # self.cbar.remove()
 
-        # bgcolor = self.bgcolor;  # 1.0 for white 
-        # bgcolor = [0,0,0,1]  # dark mode
+#         # bgcolor = self.bgcolor;  # 1.0 for white 
+#         # bgcolor = [0,0,0,1]  # dark mode
 
-        xlist = deque()
-        ylist = deque()
-        rlist = deque()
-        rgba_list = deque()
+#         xlist = deque()
+#         ylist = deque()
+#         rlist = deque()
+#         rgba_list = deque()
 
-        #  print('\n---- ' + fname + ':')
-#        tree = ET.parse(fname)
-        try:
-            tree = ET.parse(full_fname)
-        except:
-            print("------ plot_svg(): error trying to parse ",full_name)
-            return
-        root = tree.getroot()
-        #  print('--- root.tag ---')
-        #  print(root.tag)
-        #  print('--- root.attrib ---')
-        #  print(root.attrib)
-        #  print('--- child.tag, child.attrib ---')
-        numChildren = 0
-        for child in root:
-            #    print(child.tag, child.attrib)
-            #    print("keys=",child.attrib.keys())
-            # if self.use_defaults and ('width' in child.attrib.keys()):
-            #     self.axes_max = float(child.attrib['width'])
-                # print("debug> found width --> axes_max =", axes_max)
-            if child.text and "Current time" in child.text:
-                svals = child.text.split()
-                # remove the ".00" on minutes
-                self.title_str += "   cells: " + svals[2] + "d, " + svals[4] + "h, " + svals[7][:-3] + "m"
+#         #  print('\n---- ' + fname + ':')
+# #        tree = ET.parse(fname)
+#         try:
+#             tree = ET.parse(full_fname)
+#         except:
+#             print("------ plot_svg(): error trying to parse ",full_name)
+#             return
+#         root = tree.getroot()
+#         #  print('--- root.tag ---')
+#         #  print(root.tag)
+#         #  print('--- root.attrib ---')
+#         #  print(root.attrib)
+#         #  print('--- child.tag, child.attrib ---')
+#         numChildren = 0
+#         for child in root:
+#             #    print(child.tag, child.attrib)
+#             #    print("keys=",child.attrib.keys())
+#             # if self.use_defaults and ('width' in child.attrib.keys()):
+#             #     self.axes_max = float(child.attrib['width'])
+#                 # print("debug> found width --> axes_max =", axes_max)
+#             if child.text and "Current time" in child.text:
+#                 svals = child.text.split()
+#                 # remove the ".00" on minutes
+#                 self.title_str += "   cells: " + svals[2] + "d, " + svals[4] + "h, " + svals[7][:-3] + "m"
 
-                # self.cell_time_mins = int(svals[2])*1440 + int(svals[4])*60 + int(svals[7][:-3])
-                # self.title_str += "   cells: " + str(self.cell_time_mins) + "m"   # rwh
+#                 # self.cell_time_mins = int(svals[2])*1440 + int(svals[4])*60 + int(svals[7][:-3])
+#                 # self.title_str += "   cells: " + str(self.cell_time_mins) + "m"   # rwh
 
-            # print("width ",child.attrib['width'])
-            # print('attrib=',child.attrib)
-            # if (child.attrib['id'] == 'tissue'):
-            if ('id' in child.attrib.keys()):
-                # print('-------- found tissue!!')
-                tissue_parent = child
-                break
+#             # print("width ",child.attrib['width'])
+#             # print('attrib=',child.attrib)
+#             # if (child.attrib['id'] == 'tissue'):
+#             if ('id' in child.attrib.keys()):
+#                 # print('-------- found tissue!!')
+#                 tissue_parent = child
+#                 break
 
-        # print('------ search tissue')
-        cells_parent = None
+#         # print('------ search tissue')
+#         cells_parent = None
 
-        for child in tissue_parent:
-            # print('attrib=',child.attrib)
-            if (child.attrib['id'] == 'cells'):
-                # print('-------- found cells, setting cells_parent')
-                cells_parent = child
-                break
-            numChildren += 1
+#         for child in tissue_parent:
+#             # print('attrib=',child.attrib)
+#             if (child.attrib['id'] == 'cells'):
+#                 # print('-------- found cells, setting cells_parent')
+#                 cells_parent = child
+#                 break
+#             numChildren += 1
 
-        num_cells = 0
-        #  print('------ search cells')
-        for child in cells_parent:
-            #    print(child.tag, child.attrib)
-            #    print('attrib=',child.attrib)
-            for circle in child:  # two circles in each child: outer + nucleus
-                #  circle.attrib={'cx': '1085.59','cy': '1225.24','fill': 'rgb(159,159,96)','r': '6.67717','stroke': 'rgb(159,159,96)','stroke-width': '0.5'}
-                #      print('  --- cx,cy=',circle.attrib['cx'],circle.attrib['cy'])
-                xval = float(circle.attrib['cx'])
+#         num_cells = 0
+#         #  print('------ search cells')
+#         for child in cells_parent:
+#             #    print(child.tag, child.attrib)
+#             #    print('attrib=',child.attrib)
+#             for circle in child:  # two circles in each child: outer + nucleus
+#                 #  circle.attrib={'cx': '1085.59','cy': '1225.24','fill': 'rgb(159,159,96)','r': '6.67717','stroke': 'rgb(159,159,96)','stroke-width': '0.5'}
+#                 #      print('  --- cx,cy=',circle.attrib['cx'],circle.attrib['cy'])
+#                 xval = float(circle.attrib['cx'])
 
-                # map SVG coords into comp domain
-                # xval = (xval-self.svg_xmin)/self.svg_xrange * self.x_range + self.xmin
-                xval = xval/self.x_range * self.x_range + self.xmin
+#                 # map SVG coords into comp domain
+#                 # xval = (xval-self.svg_xmin)/self.svg_xrange * self.x_range + self.xmin
+#                 xval = xval/self.x_range * self.x_range + self.xmin
 
-                s = circle.attrib['fill']
-                # print("s=",s)
-                # print("type(s)=",type(s))
-                if( s[0:4] == "rgba" ):
-                    # background = bgcolor[0] * 255.0; # coudl also be 255.0 for white
-                    rgba_float =list(map(float,s[5:-1].split(",")))
-                    r = rgba_float[0]
-                    g = rgba_float[1]
-                    b = rgba_float[2]                    
-                    alpha = rgba_float[3]
-                    alpha *= 2.0; # cell_alpha_toggle
-                    if( alpha > 1.0 ):
-                    # if( alpha > 1.0 or self.cell_alpha_toggle.value == False ):
-                        alpha = 1.0
-                    # if( self.cell_alpha_toggle.value == False ):
-                    #     alpha = 1.0;  
+#                 s = circle.attrib['fill']
+#                 # print("s=",s)
+#                 # print("type(s)=",type(s))
+#                 if( s[0:4] == "rgba" ):
+#                     # background = bgcolor[0] * 255.0; # coudl also be 255.0 for white
+#                     rgba_float =list(map(float,s[5:-1].split(",")))
+#                     r = rgba_float[0]
+#                     g = rgba_float[1]
+#                     b = rgba_float[2]                    
+#                     alpha = rgba_float[3]
+#                     alpha *= 2.0; # cell_alpha_toggle
+#                     if( alpha > 1.0 ):
+#                     # if( alpha > 1.0 or self.cell_alpha_toggle.value == False ):
+#                         alpha = 1.0
+#                     # if( self.cell_alpha_toggle.value == False ):
+#                     #     alpha = 1.0;  
 
-#                        if( self.substrates_toggle.value and 1 == 2 ):
-#                            r = background * (1-alpha) + alpha*rgba_float[0];
-#                            g = background * (1-alpha) + alpha*rgba_float[1];
-#                            b = background * (1-alpha) + alpha*rgba_float[2];
-                    rgba = [1,1,1,alpha]
-                    rgba[0:3] = [ np.round(r), np.round(g), np.round(b) ]
-                    rgba[0:3] = [x / 255. for x in rgba[0:3] ]  
-                    # rgba = [rgba_float[0]/255.0, rgba_float[1]/255.0, rgba_float[2]/255.0,alpha];
-                    # rgba[0:3] = rgb; 
-                    # rgb = list(map(int, s[5:-1].split(",")))
-                elif (s[0:3] == "rgb"):  # if an rgb string, e.g. "rgb(175,175,80)" 
-                    rgba = [1,1,1,1.0]
-                    rgba[0:3] = list(map(int, s[4:-1].split(",")))  
-                    rgba[0:3] = [x / 255. for x in rgba[0:3] ]
-                else:     # otherwise, must be a color name
-                    rgb_tuple = mplc.to_rgb(mplc.cnames[s])  # a tuple
-                    rgba = [1,1,1,1.0]
-                    rgba[0:3] = [x for x in rgb_tuple]
+# #                        if( self.substrates_toggle.value and 1 == 2 ):
+# #                            r = background * (1-alpha) + alpha*rgba_float[0];
+# #                            g = background * (1-alpha) + alpha*rgba_float[1];
+# #                            b = background * (1-alpha) + alpha*rgba_float[2];
+#                     rgba = [1,1,1,alpha]
+#                     rgba[0:3] = [ np.round(r), np.round(g), np.round(b) ]
+#                     rgba[0:3] = [x / 255. for x in rgba[0:3] ]  
+#                     # rgba = [rgba_float[0]/255.0, rgba_float[1]/255.0, rgba_float[2]/255.0,alpha];
+#                     # rgba[0:3] = rgb; 
+#                     # rgb = list(map(int, s[5:-1].split(",")))
+#                 elif (s[0:3] == "rgb"):  # if an rgb string, e.g. "rgb(175,175,80)" 
+#                     rgba = [1,1,1,1.0]
+#                     rgba[0:3] = list(map(int, s[4:-1].split(",")))  
+#                     rgba[0:3] = [x / 255. for x in rgba[0:3] ]
+#                 else:     # otherwise, must be a color name
+#                     rgb_tuple = mplc.to_rgb(mplc.cnames[s])  # a tuple
+#                     rgba = [1,1,1,1.0]
+#                     rgba[0:3] = [x for x in rgb_tuple]
 
-                # test for bogus x,y locations (rwh TODO: use max of domain?)
-                too_large_val = 10000.
-                if (np.fabs(xval) > too_large_val):
-                    print("bogus xval=", xval)
-                    break
-                yval = float(circle.attrib['cy'])
-                # yval = (yval - self.svg_xmin)/self.svg_xrange * self.y_range + self.ymin
-                yval = yval/self.y_range * self.y_range + self.ymin
-                if (np.fabs(yval) > too_large_val):
-                    print("bogus yval=", yval)
-                    break
+#                 # test for bogus x,y locations (rwh TODO: use max of domain?)
+#                 too_large_val = 10000.
+#                 if (np.fabs(xval) > too_large_val):
+#                     print("bogus xval=", xval)
+#                     break
+#                 yval = float(circle.attrib['cy'])
+#                 # yval = (yval - self.svg_xmin)/self.svg_xrange * self.y_range + self.ymin
+#                 yval = yval/self.y_range * self.y_range + self.ymin
+#                 if (np.fabs(yval) > too_large_val):
+#                     print("bogus yval=", yval)
+#                     break
 
-                rval = float(circle.attrib['r'])
-                # if (rgb[0] > rgb[1]):
-                #     print(num_cells,rgb, rval)
-                xlist.append(xval)
-                ylist.append(yval)
-                rlist.append(rval)
-                rgba_list.append(rgba)
+#                 rval = float(circle.attrib['r'])
+#                 # if (rgb[0] > rgb[1]):
+#                 #     print(num_cells,rgb, rval)
+#                 xlist.append(xval)
+#                 ylist.append(yval)
+#                 rlist.append(rval)
+#                 rgba_list.append(rgba)
 
-                # For .svg files with cells that *have* a nucleus, there will be a 2nd
-                if (not self.show_nucleus):
-                #if (not self.show_nucleus):
-                    break
+#                 # For .svg files with cells that *have* a nucleus, there will be a 2nd
+#                 if (not self.show_nucleus):
+#                 #if (not self.show_nucleus):
+#                     break
 
-            num_cells += 1
+#             num_cells += 1
 
-            # if num_cells > 3:   # for debugging
-            #   print(fname,':  num_cells= ',num_cells," --- debug exit.")
-            #   sys.exit(1)
-            #   break
+#             # if num_cells > 3:   # for debugging
+#             #   print(fname,':  num_cells= ',num_cells," --- debug exit.")
+#             #   sys.exit(1)
+#             #   break
 
-            # print(fname,':  num_cells= ',num_cells)
+#             # print(fname,':  num_cells= ',num_cells)
 
-        xvals = np.array(xlist)
-        yvals = np.array(ylist)
-        rvals = np.array(rlist)
-        # rgbs = np.array(rgb_list)
-        rgbas = np.array(rgba_list)
-        # print("xvals[0:5]=",xvals[0:5])
-        # print("rvals[0:5]=",rvals[0:5])
-        # print("rvals.min, max=",rvals.min(),rvals.max())
+#         xvals = np.array(xlist)
+#         yvals = np.array(ylist)
+#         rvals = np.array(rlist)
+#         # rgbs = np.array(rgb_list)
+#         rgbas = np.array(rgba_list)
+#         # print("xvals[0:5]=",xvals[0:5])
+#         # print("rvals[0:5]=",rvals[0:5])
+#         # print("rvals.min, max=",rvals.min(),rvals.max())
 
-        # rwh - is this where I change size of render window?? (YES - yipeee!)
-        #   plt.figure(figsize=(6, 6))
-        #   plt.cla()
-        # if (self.substrates_toggle.value):
-        self.title_str += " (" + str(num_cells) + " agents)"
-            # title_str = " (" + str(num_cells) + " agents)"
-        # else:
-            # mins= round(int(float(root.find(".//current_time").text)))  # TODO: check units = mins
-            # hrs = int(mins/60)
-            # days = int(hrs/24)
-            # title_str = '%dd, %dh, %dm' % (int(days),(hrs%24), mins - (hrs*60))
-        # plt.title(self.title_str)
-        self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
-        # self.ax0.set_title(self.title_str, prop={'size':'small'})
+#         # rwh - is this where I change size of render window?? (YES - yipeee!)
+#         #   plt.figure(figsize=(6, 6))
+#         #   plt.cla()
+#         # if (self.substrates_toggle.value):
+#         self.title_str += " (" + str(num_cells) + " agents)"
+#             # title_str = " (" + str(num_cells) + " agents)"
+#         # else:
+#             # mins= round(int(float(root.find(".//current_time").text)))  # TODO: check units = mins
+#             # hrs = int(mins/60)
+#             # days = int(hrs/24)
+#             # title_str = '%dd, %dh, %dm' % (int(days),(hrs%24), mins - (hrs*60))
+#         # plt.title(self.title_str)
+#         self.ax0.set_title(self.title_str, fontsize=self.title_fontsize)
+#         # self.ax0.set_title(self.title_str, prop={'size':'small'})
 
-        # plt.xlim(self.xmin, self.xmax)
-        # plt.ylim(self.ymin, self.ymax)
+#         # plt.xlim(self.xmin, self.xmax)
+#         # plt.ylim(self.ymin, self.ymax)
 
-        # print("plot_svg(): plot_xmin,xmax, ymin,ymax= ",self.plot_xmin,self.plot_xmax,self.plot_ymin,self.plot_ymax)
-        # set xrange & yrange of plots
-        self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
-        # self.ax0.set_xlim(-450, self.xmax)
+#         # print("plot_svg(): plot_xmin,xmax, ymin,ymax= ",self.plot_xmin,self.plot_xmax,self.plot_ymin,self.plot_ymax)
+#         # set xrange & yrange of plots
+#         self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
+#         # self.ax0.set_xlim(-450, self.xmax)
 
-        self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-        # self.ax0.set_ylim(0.0, self.ymax)
-        self.ax0.tick_params(labelsize=self.fontsize)
+#         self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
+#         # self.ax0.set_ylim(0.0, self.ymax)
+#         self.ax0.tick_params(labelsize=self.fontsize)
 
-        self.ax0.set_facecolor(self.bgcolor)
+#         self.ax0.set_facecolor(self.bgcolor)
 
-        # self.ax0.colorbar(collection)
+#         # self.ax0.colorbar(collection)
 
-        #   plt.xlim(axes_min,axes_max)
-        #   plt.ylim(axes_min,axes_max)
-        #   plt.scatter(xvals,yvals, s=rvals*scale_radius, c=rgbs)
+#         #   plt.xlim(axes_min,axes_max)
+#         #   plt.ylim(axes_min,axes_max)
+#         #   plt.scatter(xvals,yvals, s=rvals*scale_radius, c=rgbs)
 
-        # TODO: make figsize a function of plot_size? What about non-square plots?
-        # self.fig = plt.figure(figsize=(9, 9))
+#         # TODO: make figsize a function of plot_size? What about non-square plots?
+#         # self.fig = plt.figure(figsize=(9, 9))
 
-#        axx = plt.axes([0, 0.05, 0.9, 0.9])  # left, bottom, width, height
-#        axx = fig.gca()
-#        print('fig.dpi=',fig.dpi) # = 72
+# #        axx = plt.axes([0, 0.05, 0.9, 0.9])  # left, bottom, width, height
+# #        axx = fig.gca()
+# #        print('fig.dpi=',fig.dpi) # = 72
 
-        #   im = ax.imshow(f.reshape(100,100), interpolation='nearest', cmap=cmap, extent=[0,20, 0,20])
-        #   ax.xlim(axes_min,axes_max)
-        #   ax.ylim(axes_min,axes_max)
+#         #   im = ax.imshow(f.reshape(100,100), interpolation='nearest', cmap=cmap, extent=[0,20, 0,20])
+#         #   ax.xlim(axes_min,axes_max)
+#         #   ax.ylim(axes_min,axes_max)
 
-        # convert radii to radii in pixels
-        # ax1 = self.fig.gca()
-        # N = len(xvals)
-        # rr_pix = (ax1.transData.transform(np.vstack([rvals, rvals]).T) -
-        #             ax1.transData.transform(np.vstack([np.zeros(N), np.zeros(N)]).T))
-        # rpix, _ = rr_pix.T
+#         # convert radii to radii in pixels
+#         # ax1 = self.fig.gca()
+#         # N = len(xvals)
+#         # rr_pix = (ax1.transData.transform(np.vstack([rvals, rvals]).T) -
+#         #             ax1.transData.transform(np.vstack([np.zeros(N), np.zeros(N)]).T))
+#         # rpix, _ = rr_pix.T
 
-        # markers_size = (144. * rpix / self.fig.dpi)**2   # = (2*rpix / fig.dpi * 72)**2
-        # markers_size = markers_size/4000000.
-        # print('max=',markers_size.max())
+#         # markers_size = (144. * rpix / self.fig.dpi)**2   # = (2*rpix / fig.dpi * 72)**2
+#         # markers_size = markers_size/4000000.
+#         # print('max=',markers_size.max())
 
-        #rwh - temp fix - Ah, error only occurs when "edges" is toggled on
-        # if (self.show_edge):
-        if (self.cells_edge_checked_flag):
-            try:
-                # plt.scatter(xvals,yvals, s=markers_size, c=rgbs, edgecolor='black', linewidth=0.5)
-                # self.circles(xvals,yvals, s=rvals, color=rgbas, alpha=self.alpha, edgecolor='black', linewidth=0.5)
-                # print("--- plotting circles with edges!!")
-                self.circles(xvals,yvals, s=rvals, color=rgbas, edgecolor='black', linewidth=0.5)
-                # cell_circles = self.circles(xvals,yvals, s=rvals, color=rgbs, edgecolor='black', linewidth=0.5)
-                # plt.sci(cell_circles)
-            except (ValueError):
-                pass
-        else:
-            # plt.scatter(xvals,yvals, s=markers_size, c=rgbs)
-            # self.circles(xvals,yvals, s=rvals, color=rgbas, alpha=self.alpha)
-            # print("--- plotting circles without edges!!")
-            self.circles(xvals,yvals, s=rvals, color=rgbas)
+#         #rwh - temp fix - Ah, error only occurs when "edges" is toggled on
+#         # if (self.show_edge):
+#         if (self.cells_edge_checked_flag):
+#             try:
+#                 # plt.scatter(xvals,yvals, s=markers_size, c=rgbs, edgecolor='black', linewidth=0.5)
+#                 # self.circles(xvals,yvals, s=rvals, color=rgbas, alpha=self.alpha, edgecolor='black', linewidth=0.5)
+#                 # print("--- plotting circles with edges!!")
+#                 self.circles(xvals,yvals, s=rvals, color=rgbas, edgecolor='black', linewidth=0.5)
+#                 # cell_circles = self.circles(xvals,yvals, s=rvals, color=rgbs, edgecolor='black', linewidth=0.5)
+#                 # plt.sci(cell_circles)
+#             except (ValueError):
+#                 pass
+#         else:
+#             # plt.scatter(xvals,yvals, s=markers_size, c=rgbs)
+#             # self.circles(xvals,yvals, s=rvals, color=rgbas, alpha=self.alpha)
+#             # print("--- plotting circles without edges!!")
+#             self.circles(xvals,yvals, s=rvals, color=rgbas)
 
-        self.ax0.set_aspect(1.0)
+#         self.ax0.set_aspect(1.0)
 
     #------------------------------------------------------------
     def plot_substrate(self, frame):
