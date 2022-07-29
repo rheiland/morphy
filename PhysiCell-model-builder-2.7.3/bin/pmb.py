@@ -228,6 +228,7 @@ class PhysiCellXMLCreator(QWidget):
             self.tabWidget.addTab(self.vis_tab,"Plot")
             # self.tabWidget.setTabEnabled(5, False)
             self.enablePlotTab(False)
+            self.enablePlotTab(True)
 
             self.tabWidget.addTab(self.legend_tab,"Legend")
             self.enableLegendTab(False)
@@ -838,7 +839,7 @@ def main():
 
     ex = PhysiCellXMLCreator(studio_flag, rules_flag)
     ex.show()
-    startup_notice()
+    # startup_notice()
     sys.exit(pmb_app.exec_())
 	
 if __name__ == '__main__':

@@ -238,14 +238,24 @@ void setup_tissue( void )
         double x0 = 70.;
         double y0 = 40.;
 
+	    double pi = 3.141592653589793238462643383279502884;
+		double semimajor = parameters.doubles("major_axis_2a")/2;
+		double ecc = parameters.doubles("eccentricity");
+		double vol = parameters.doubles("starting_cell_volume");
+		double b_axis_calc = pow( pow(semimajor,2)*(1-pow(ecc,2)), 0.5);
+		double c_axis_calc = (3*vol)/( 4*pi*pow(((1-ecc)*pow(semimajor,2) ),0.5));
+
+		std::cout << "ecc " << ecc << " ... " << std::endl;
+		std::cout << "bax " << b_axis_calc << " ... " << std::endl; 
+
         // create 4 cells around the origin (in Z=0 plane)
         pC = create_cell( *pCD ); 
         position[0] = x0;
         position[1] = 0.; 
         pC->assign_position( position );
-        pC->custom_data["axis_a"] = parameters.doubles("axis_a");
-        pC->custom_data["axis_b"] = parameters.doubles("axis_b");
-        pC->custom_data["axis_c"] = parameters.doubles("axis_c");
+        pC->custom_data["axis_a"] = semimajor;
+        pC->custom_data["axis_b"] = b_axis_calc;
+        pC->custom_data["axis_c"] = c_axis_calc;
         double new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
         pC->set_total_volume(new_volume);
 
@@ -253,9 +263,9 @@ void setup_tissue( void )
         position[0] = -x0;
         position[1] = 0; 
         pC->assign_position( position );
-        pC->custom_data["axis_a"] = parameters.doubles("axis_a");
-        pC->custom_data["axis_b"] = parameters.doubles("axis_b");
-        pC->custom_data["axis_c"] = parameters.doubles("axis_c");
+        pC->custom_data["axis_a"] = semimajor;
+        pC->custom_data["axis_b"] = b_axis_calc;
+        pC->custom_data["axis_c"] = c_axis_calc;
         new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
         pC->set_total_volume(new_volume);
 
@@ -263,9 +273,9 @@ void setup_tissue( void )
         position[0] = 0;
         position[1] = y0; 
         pC->assign_position( position );
-        pC->custom_data["axis_a"] = parameters.doubles("axis_a");
-        pC->custom_data["axis_b"] = parameters.doubles("axis_b");
-        pC->custom_data["axis_c"] = parameters.doubles("axis_c");
+        pC->custom_data["axis_a"] = semimajor;
+        pC->custom_data["axis_b"] = b_axis_calc;
+        pC->custom_data["axis_c"] = c_axis_calc;
         new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
         pC->set_total_volume(new_volume);
 
@@ -273,9 +283,9 @@ void setup_tissue( void )
         position[0] = 0;
         position[1] = -y0; 
         pC->assign_position( position );
-        pC->custom_data["axis_a"] = parameters.doubles("axis_a");
-        pC->custom_data["axis_b"] = parameters.doubles("axis_b");
-        pC->custom_data["axis_c"] = parameters.doubles("axis_c");
+        pC->custom_data["axis_a"] = semimajor;
+        pC->custom_data["axis_b"] = b_axis_calc;
+        pC->custom_data["axis_c"] = c_axis_calc;
         new_volume=custom_volume_update(pC->custom_data["axis_a"], pC->custom_data["axis_b"], pC->custom_data["axis_c"]);
         pC->set_total_volume(new_volume);
         std::cout << "new_volume= " << new_volume << std::endl;
@@ -319,9 +329,9 @@ void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
 	// pCell->phenotype.geometry.axis_b=pCell->custom_data["axis_b"];
 	// pCell->phenotype.geometry.axis_c=pCell->custom_data["axis_c"];
 
-	pCell->custom_data["axis_a"] += 8;
-	pCell->custom_data["axis_b"] += 6;
-	pCell->custom_data["axis_c"] += 4;
+	pCell->custom_data["axis_a"] += 4;
+	pCell->custom_data["axis_b"] += 10;
+	pCell->custom_data["axis_c"] += 2;
 	
 	return; 
 }

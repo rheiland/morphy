@@ -1074,9 +1074,12 @@ class Vis(QWidget):
 
         height = 10
         height_del = 5  # vary just to see different sizes
+        height_del = 1  # vary just to see different sizes
         width = 30
         width_del = 10  # vary just to see different sizes
-        angle = tmins * 45
+        width_del = 2  # vary just to see different sizes
+        # angle = tmins * 45
+        angle = tmins * 10
 
 
         #  print('--- child.tag, child.attrib ---')
@@ -1093,12 +1096,18 @@ class Vis(QWidget):
             ylist.append(yval)
 
             #   width += width_del
-            a_val = axis_a[icell]
+            a_val = axis_a[icell] / 2.0
+            a_val = 10.
             wlist.append(a_val)    # "width" of each ellipse/cell
 
-            height += height_del
-            hlist.append(height)    # "height" of each ellipse/cell
-            alist.append(angle + icell*45)
+            # height += height_del
+            b_val = axis_b[icell] / 2.0
+            b_val = 15.
+            # hlist.append(height)    # "height" of each ellipse/cell
+            hlist.append(b_val)    # "height" of each ellipse/cell
+
+            # alist.append(angle + icell*10)
+            alist.append(angle)
             rgb_list.append(rgb)
 
         xvals = np.array(xlist)
