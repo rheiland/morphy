@@ -555,16 +555,32 @@ void SVG_plot( std::string filename , Microenvironment& M, double z_slice , doub
 			// figure out how much of the cell intersects with z = 0 
    
 			double plot_radius = sqrt( r*r - z*z ); 
+			if(PhysiCell_SVG_options.plot_ellipse==true)
+			{
+				Write_SVG_ellipse(os, (pC->position)[0]-X_lower, (pC->position)[1]-Y_lower, (pC->phenotype.geometry.axis_a/2), (pC->phenotype.geometry.axis_b)/2, 0.5, Colors[1], Colors[0]);
+			}
 
-			Write_SVG_circle( os, (pC->position)[0]-X_lower, (pC->position)[1]-Y_lower, 
-				plot_radius , 0.5, Colors[1], Colors[0] ); 
-
+			else
+			{
+				Write_SVG_circle( os, (pC->position)[0]-X_lower, (pC->position)[1]-Y_lower, plot_radius , 0.5, Colors[1], Colors[0] ); 
+			}
 			// plot the nucleus if it, too intersects z = 0;
 			if( fabs(z) < rn && PhysiCell_SVG_options.plot_nuclei == true )
 			{   
 				plot_radius = sqrt( rn*rn - z*z ); 
 			 	Write_SVG_circle( os, (pC->position)[0]-X_lower, (pC->position)[1]-Y_lower, 
 					plot_radius, 0.5, Colors[3],Colors[2]); 
+			}
+			if(PhysiCell_SVG_options.colorblind_shape == true)
+			{
+				plot_radius = sqrt( rn*rn - z*z ); 
+				for( int k=0; k < cell_definitions_by_index.size() ; k++ )
+				{
+					Write_SVG_rect( os, (pC->position)[0]-X_lower-(plot_radius/2), (pC->position)[1]-Y_lower-(plot_radius/2), 
+					plot_radius,plot_radius, 0.5*(k+1), Colors[3],Colors[2]); 
+				}
+				
+			 	
 			}					  
 			os << "   </g>" << std::endl;
 		}
@@ -741,12 +757,20 @@ void create_plot_legend( std::string filename , std::vector<std::string> (*cell_
 		
 		// get the colors using the current coloring function 
 		std::vector<std::string> colors = cell_coloring_function(&C); 
-		
-		// place a big circle with cytoplasm colors 
-		Write_SVG_circle(os,cursor_x, cursor_y , temp_cell_radius , 1.0 , colors[1] , colors[0] ); 
-		// place a small circle with nuclear colors 
-		Write_SVG_circle(os,cursor_x, cursor_y , 0.5*temp_cell_radius , 1.0 , colors[2] , colors[3] ); 
-		
+		if(PhysiCell_SVG_options.plot_ellipse)
+		{
+			// place a big circle with cytoplasm colors 
+			Write_SVG_ellipse(os,cursor_x, cursor_y , temp_cell_radius/2 ,temp_cell_radius, 1.0 , colors[1] , colors[0] ); 
+			// place a small circle with nuclear colors 
+			//Write_SVG_circle(os,cursor_x, cursor_y , 0.5*temp_cell_radius , 1.0 , colors[2] , colors[3] ); 	
+		}
+		else
+		{
+			// place a big circle with cytoplasm colors 
+			Write_SVG_circle(os,cursor_x, cursor_y , temp_cell_radius , 1.0 , colors[1] , colors[0] ); 
+			// place a small circle with nuclear colors 
+			Write_SVG_circle(os,cursor_x, cursor_y , 0.5*temp_cell_radius , 1.0 , colors[2] , colors[3] ); 
+		}
 		// place the label 
 		
 		cursor_x += temp_cell_radius + 2*padding; 

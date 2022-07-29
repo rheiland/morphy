@@ -79,8 +79,10 @@
 namespace PhysiCell{
 	
 struct PhysiCell_SVG_options_struct {
-	bool plot_nuclei = true; 
-
+	bool plot_nuclei = false; 
+	bool plot_ellipse=true;
+	bool colorblind_safe_colors=false;
+	bool colorblind_shape=false;
 	std::string simulation_time_units = "min";
 	std::string mu = "&#956;";
 	std::string simulation_space_units = "&#956;m";
