@@ -251,10 +251,10 @@ class Vis(QWidget):
         self.glayout1.addWidget(self.cells_edge_checkbox, 0,icol,1,1) # w, row, column, rowspan, colspan
 
         self.substrates_checkbox = QCheckBox('Substrates')
-        self.substrates_checkbox.setChecked(False)
+        self.substrates_checked_flag = True
+        self.substrates_checkbox.setChecked(self.substrates_checked_flag)
         # self.substrates_checkbox.setEnabled(False)
         self.substrates_checkbox.clicked.connect(self.substrates_toggle_cb)
-        self.substrates_checked_flag = False
         icol += 1
         self.glayout1.addWidget(self.substrates_checkbox, 0,icol,1,2) # w, row, column, rowspan, colspan
 
