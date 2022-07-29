@@ -100,6 +100,7 @@ class PhysiCellXMLCreator(QWidget):
 
         # model_name = "interactions"  # for testing latest xml
         model_name = "template"
+        model_name = "morphy"
         # model_name = "test1"
         # model_name = "interactions"
 
