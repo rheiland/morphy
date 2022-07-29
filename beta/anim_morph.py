@@ -1,27 +1,14 @@
 #
-# anim_svg.py:  render/animate PhysiCell .svg files, using left/right arrows on keyboard
+# anim_morph.py:  render/animate PhysiCell .mat (cell) files, using left/right arrows on keyboard
 #
-# Usage:
-#  python anim_svg.py <show_nucleus start_index axes_min axes_max>
-#    i.e., the arguments <...> are optional and have defaults.
-# 
 # Keyboard arrows: right/left arrows will single step forward/backward; up/down will increment/decrement step size
 #
 # Dependencies include matplotlib and numpy. We recommend installing the Anaconda Python3 distribution.
 #
-# Examples (run from directory containing the .svg files):
-#  python anim_svg.py 
-#  python anim_svg.py 0 5 700 1300 
-#
-# Author: Randy Heiland (except for the circles() function)
-#
-#
 __author__ = "Randy Heiland"
 
 import sys
-import glob
 import os
-import xml.etree.ElementTree as ET
 import math
 from pyMCDS_optional_meshes import pyMCDS
 join_our_list = "(Join/ask questions at https://groups.google.com/forum/#!forum/physicell-users)\n"
@@ -135,7 +122,8 @@ count = -1
 #while True:
 
 #-----------------------------------------------------
-def circles(x, y, s, c='b', vmin=None, vmax=None, **kwargs):
+#def ellipses(x, y, s, c='b', vmin=None, vmax=None, **kwargs):
+def ellipses(x, y, width, height, angle, c='b', vmin=None, vmax=None, **kwargs):
     """
     See https://gist.github.com/syrte/592a062c562cd2a98a83 
 
@@ -191,9 +179,11 @@ def circles(x, y, s, c='b', vmin=None, vmax=None, **kwargs):
     # You can set `facecolor` with an array for each patch,
     # while you can only set `facecolors` with a value for all.
 
-    zipped = np.broadcast(x, y, s)
-    patches = [Circle((x_, y_), s_)
-               for x_, y_, s_ in zipped]
+    # zipped = np.broadcast(x, y, width, height, angle, s)
+    zipped = np.broadcast(x, y, width, height, angle)
+    # patches = [Ellipse((x_, y_), width_, height_, angle_, s_)
+    patches = [Ellipse((x_, y_), width_, height_, angle_)
+               for x_, y_, width_, height_, angle_  in zipped]
     collection = PatchCollection(patches, **kwargs)
     if c is not None:
         c = np.broadcast_to(c, zipped.shape).ravel()
@@ -231,6 +221,17 @@ def plot_cells():
   xlist = deque()
   ylist = deque()
   rlist = deque()
+  wlist = deque()
+  hlist = deque()
+  alist = deque()
+
+  height = 10
+  height_del = 5  # vary just to see different sizes
+  width = 30
+  width_del = 10  # vary just to see different sizes
+  angle = 0
+  angle_del = 45  # vary just to see different sizes
+
   rgb_list = deque()
 
 #  print('--- child.tag, child.attrib ---')
@@ -248,10 +249,16 @@ def plot_cells():
       s = 'red'
       rgb_tuple = mplc.to_rgb(mplc.cnames[s])  # a tuple
       rgb = [x for x in rgb_tuple]
-      rval = 4.0   # radius
+      rval = 15.0   # radius
       xlist.append(xval)
       ylist.append(yval)
       rlist.append(rval)
+      width += width_del
+      wlist.append(width)    # "height" of each ellipse/cell
+      height += height_del
+      hlist.append(height)    # "height" of each ellipse/cell
+      angle += angle_del
+      alist.append(angle)    
       rgb_list.append(rgb)
 #      print('rgb_list = ',rgb_list)
 
@@ -266,6 +273,9 @@ def plot_cells():
   xvals = np.array(xlist)
   yvals = np.array(ylist)
   rvals = np.array(rlist)
+  widths = np.array(wlist)
+  heights = np.array(hlist)
+  angles = np.array(alist)
   rgbs =  np.array(rgb_list)
 #  print('type(rgbs) = ',type(rgbs))
 #  print('rgbs = ',rgbs)
@@ -275,19 +285,15 @@ def plot_cells():
 
   plt.cla()
   title_str += " (" + str(num_cells) + " agents)"
-#   title_str = " (" + str(num_cells) + " agents)"
   plt.title(title_str)
   plt.xlim(axes_min,axes_max)
   plt.ylim(axes_min,axes_max)
-#  plt.scatter(xvals,yvals, s=rvals*scale_radius, c=rgbs)
-#  plt.scatter(xvals,yvals, s=rvals*scale_radius, c=rgbs, alpha=0.5, edgecolor='black')
-#  plt.scatter(xvals,yvals, s=rvals*scale_radius, c=rgbs, alpha=1.0, edgecolor='black')
-#  circles(xvals,yvals, s=rvals, c=rgbs, alpha=1.0, edgecolor='black')
-#  circles(xvals,yvals, s=rvals)
-#  circles(xvals,yvals, s=rvals, c=rgbs)
-  circles(xvals,yvals, s=rvals, color=rgbs)
-#plt.xlim(0,2000)  # TODO - get these values from width,height in .svg at top
-#plt.ylim(0,2000)
+  #ellipses(xvals,yvals, widths, heights, angles, s=rvals, color=rgbs)
+  ellipses(xvals,yvals, widths, heights, angles, color=rgbs)
+#   ells = [Ellipse(xy=np.random.rand(2) * 10,
+#                 width=np.random.rand(), height=np.random.rand(),
+#                 angle=np.random.rand() * 360)
+        # for i in range(NUM)]
   plt.pause(time_delay)
 
 step_value = 1
